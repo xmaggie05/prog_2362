@@ -48,6 +48,9 @@ fake_employees = [
 ]
 
 with app.app_context():
+
+    db.create_all()
+    
     for emp in fake_employees:
         existing_user = User.query.filter_by(email=emp["email"]).first()
         if not existing_user:

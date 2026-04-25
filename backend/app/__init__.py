@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from app.extensions import db
 
+'''
 def create_app():
     app = Flask(__name__)
 
@@ -23,5 +24,27 @@ def create_app():
     with app.app_context():
         from app.models import User, LeaveRequest
         db.create_all()
+
+    return app
+'''
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager # <--- Add this
+from app.extensions import db
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object("app.config.Config") # Make sure your config is loaded!
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+
+    # Initialize extensions
+    db.init_app(app)
+    jwt = JWTManager(app) # <--- Add this
+
+    # Register Blueprints
+    from app.routes.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix="/auth")
 
     return app

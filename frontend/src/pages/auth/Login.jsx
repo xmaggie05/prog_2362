@@ -14,24 +14,34 @@ function Login() {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await API.post("/auth/login", loginData);
+    
+    // DEBUG: Look at your browser console (F12 -> Console) to see the actual shape
+    console.log("Full Backend Response:", res.data);
 
-    try {
-      const res = await API.post("/auth/login", loginData);
-      const user = res.data.user;
+    // Destructure the new secure fields
+    const { user, access_token } = res.data;
 
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/employee/dashboard");
-      }
-    } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
+    if (!user || !access_token) {
+       throw new Error("Backend response missing user or token");
     }
-  };
+
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", access_token);
+
+    if (user.role === "admin") {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/employee/dashboard");
+    }
+  } catch (err) {
+    console.error("Caught error:", err);
+    alert(err.response?.data?.error || "Login failed - Check console");
+  }
+};
 
   return (
     <div className="auth-page">
