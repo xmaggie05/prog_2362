@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 from app.models import User
 
@@ -29,10 +30,12 @@ def signup():
     if existing_user:
         return jsonify({"error": "Email already exists"}), 400
 
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    
     user = User(
         full_name=full_name,
         email=email,
-        password=password,
+        password=hashed_password,
         role = "admin" if email == "admin@test.com" else "employee",
         department=department,
         job_title=job_title,
@@ -42,8 +45,7 @@ def signup():
     db.session.commit()
 
     return jsonify({
-        "message": "Account created successfully",
-        "user": user.to_dict()
+        "message": "Account created successfully"
     }), 201
 
 @auth_bp.route("/login", methods=["POST"])
@@ -57,11 +59,21 @@ def login():
         return jsonify({"error": "Email and password are required"}), 400
 
     user = User.query.filter_by(email=email).first()
-
-    if not user or user.password != password:
+    
+    if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid email or password"}), 401
+    
+    session['user_id'] = user.id 
+    session['role'] = user.role
 
     return jsonify({
         "message": "Login successful",
-        "user": user.to_dict()
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "department": user.department,
+            "job_title": user.job_title,
+            "role": user.role
+        }
     }), 200

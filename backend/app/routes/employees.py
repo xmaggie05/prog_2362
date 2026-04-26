@@ -1,16 +1,38 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
+from werkzeug.security import generate_password_hash
 from app.extensions import db
 from app.models import User
+from functools import wraps
 
 employees_bp = Blueprint("employees", __name__)
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+        if session.get('role') != 'admin':
+            return jsonify({"error": "Forbidden. Admins only."}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
 @employees_bp.route("/", methods=["GET"])
+@admin_required
 def get_all_employees():
     employees = User.query.all()
     return jsonify([employee.to_dict() for employee in employees]), 200
 
 
 @employees_bp.route("/", methods=["POST"])
+@admin_required
 def create_employee():
     data = request.get_json()
 
@@ -27,11 +49,13 @@ def create_employee():
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"error": "Email already exists"}), 400
+    
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
     employee = User(
         full_name=full_name,
         email=email,
-        password=password,
+        password=hashed_password,
         department=department,
         job_title=job_title,
         role=role,
@@ -47,6 +71,7 @@ def create_employee():
 
 
 @employees_bp.route("/<int:employee_id>", methods=["PUT"])
+@admin_required
 def update_employee(employee_id):
     employee = User.query.get(employee_id)
 
@@ -70,6 +95,7 @@ def update_employee(employee_id):
 
 
 @employees_bp.route("/<int:employee_id>", methods=["DELETE"])
+@admin_required
 def delete_employee(employee_id):
     employee = User.query.get(employee_id)
 
@@ -83,6 +109,7 @@ def delete_employee(employee_id):
 
 
 @employees_bp.route("/search", methods=["GET"])
+@login_required
 def search_employees():
     query = request.args.get("q", "").strip()
 

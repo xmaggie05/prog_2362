@@ -1,24 +1,24 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
 function EmployeeDashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = localStorage.getItem("user_name");
 
   return (
     <DashboardLayout role="employee" title="Employee Dashboard">
       <div className="card-grid">
         <div className="info-card">
           <h3>Welcome</h3>
-          <p>{user?.full_name || "Employee"}</p>
+          <p>{userName || "Employee"}</p>
         </div>
 
         <div className="info-card">
           <h3>Department</h3>
-          <p>{user?.department || "-"}</p>
+          <p>-</p>
         </div>
 
         <div className="info-card">
           <h3>Job Title</h3>
-          <p>{user?.job_title || "-"}</p>
+          <p>-</p>
         </div>
       </div>
 

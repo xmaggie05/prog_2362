@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import API from "../../services/api";
 
 function LeaveRequest() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = localStorage.getItem("user_id");
 
   const [form, setForm] = useState({
     leave_type: "",
@@ -17,7 +17,7 @@ function LeaveRequest() {
 
   const fetchRequests = async () => {
     try {
-      const res = await API.get(`/leave/employee/${user.id}`);
+      const res = await API.get(`/leave/employee/${userId}`);
       setRequests(res.data);
     } catch (err) {
       console.error(err);
@@ -25,10 +25,10 @@ function LeaveRequest() {
   };
 
   useEffect(() => {
-    if (user?.id) {
+    if (userId) {
       fetchRequests();
     }
-  }, []);
+  }, [userId]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -37,9 +37,14 @@ function LeaveRequest() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (form.end_date < form.start_date) {
+      alert("End date cannot be earlier than the start date.");
+      return;
+    }
+
     try {
       await API.post("/leave/", {
-        employee_id: user.id,
+        employee_id: userId,
         ...form,
       });
 

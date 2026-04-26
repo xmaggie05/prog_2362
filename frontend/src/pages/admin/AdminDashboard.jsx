@@ -1,19 +1,19 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
 function AdminDashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = localStorage.getItem("user_name");
 
   return (
     <DashboardLayout role="admin" title="Admin Dashboard">
       <div className="card-grid">
         <div className="info-card">
           <h3>Welcome</h3>
-          <p>{user?.full_name || "Admin"}</p>
+          <p>{userName || "Admin"}</p>
         </div>
 
         <div className="info-card">
           <h3>Role</h3>
-          <p>{user?.role || "admin"}</p>
+          <p>admin</p>
         </div>
 
         <div className="info-card">

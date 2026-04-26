@@ -1,14 +1,16 @@
 import { Navigate } from "react-router-dom";
 
 function ProtectedRoute({ children, role }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  // FIX: Look for the individual string 'user_role' instead of the 'user' object
+  const userRole = localStorage.getItem("user_role");
 
-  if (!user) {
-    return <Navigate to="/login" />;
+  if (!userRole) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (role && user.role !== role) {
-    return <Navigate to="/login" />;
+  // Check if the user has the required permission
+  if (role && userRole !== role) {
+    return <Navigate to={userRole === "admin" ? "/admin/dashboard" : "/employee/dashboard"} replace />;
   }
 
   return children;

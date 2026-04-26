@@ -1,14 +1,44 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from app.extensions import db
 from app.models import LeaveRequest, User
+from functools import wraps
+from datetime import datetime
 
 leave_bp = Blueprint("leave", __name__)
 
+
+def parse_leave_date(value):
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    raise ValueError("Invalid date format.")
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+        if session.get('role') != 'admin':
+            return jsonify({"error": "Forbidden. Admins only."}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
 @leave_bp.route("/", methods=["POST"])
+@login_required
 def create_leave_request():
     data = request.get_json()
 
-    employee_id = data.get("employee_id")
+    employee_id = session.get("user_id")
     leave_type = data.get("leave_type")
     custom_leave_type = data.get("custom_leave_type")
     start_date = data.get("start_date")
@@ -17,6 +47,16 @@ def create_leave_request():
 
     if not all([employee_id, leave_type, start_date, end_date, reason]):
         return jsonify({"error": "All required fields must be filled"}), 400
+    
+    try:
+        start_date_obj = parse_leave_date(start_date)
+        end_date_obj = parse_leave_date(end_date)
+
+        if end_date_obj < start_date_obj:
+            return jsonify({"error": "End date cannot be earlier than the start date."}), 400
+            
+    except ValueError:
+        return jsonify({"error": "Invalid date format."}), 400
 
     leave_request = LeaveRequest(
         employee_id=employee_id,
